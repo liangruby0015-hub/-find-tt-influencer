@@ -7,7 +7,7 @@
 - **飞书日报**：每天 09:00 自动推送 TikTok 热门视频 + 热门话题到飞书群
 - **博主同步**：每 4 小时抓取 50 条美区视频，提取博主信息（粉丝数、邮箱、简介、近月均播、视频风格）写入 Google Sheet
 - **触达追踪**：同步博主时实时查询 Gmail 已发送邮件，直接写入准确的触达状态
-- **自动发邮件**：按粉丝数范围和近月均播筛选未触达博主，发送个性化品牌合作邀请邮件，自动更新触达状态
+- **发邮件（手动）**：按粉丝数范围和近月均播筛选未触达博主，预览确认后手动发送个性化品牌合作邀请邮件，自动更新触达状态
 
 ## 前置准备
 
@@ -35,10 +35,12 @@
 2. 创建 OAuth 客户端 ID（类型选「桌面应用」）→ 下载 JSON → 重命名为 `gmail_credentials.json`
 3. 在 OAuth 同意屏幕的「测试用户」中添加你自己的 Gmail 地址
 
-### 5. Gmail SMTP（发送邮件）
-1. 开启 Google 账号的两步验证
-2. 前往 [应用专用密码](https://myaccount.google.com/apppasswords) 生成一个 16 位密码
-3. 填入 `.env` 的 `GMAIL_SMTP_USER` 和 `GMAIL_SMTP_APP_PASSWORD`
+### 5. SMTP 邮件发送配置
+1. 开启邮箱的 SMTP 服务并获取授权密码
+   - **Gmail**：开启两步验证 → 前往 [应用专用密码](https://myaccount.google.com/apppasswords) 生成 16 位密码
+   - **QQ邮箱**：设置 → 账户 → 开启 SMTP → 生成授权码
+   - **163邮箱**：设置 → POP3/SMTP → 开启 → 设置授权密码
+2. 填入 `.env` 的 `SMTP_USER` 和 `SMTP_PASSWORD`，端口推荐使用 `465`
 
 ## 安装
 
@@ -67,8 +69,10 @@ BRAND_NAME=你的品牌名称
 REPLY_EMAIL=你的邮箱地址
 
 # Gmail SMTP 发信（开启两步验证后生成应用专用密码）
-GMAIL_SMTP_USER=你的Gmail地址
-GMAIL_SMTP_APP_PASSWORD=16位应用专用密码
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=你的邮箱地址
+SMTP_PASSWORD=应用专用密码
 ```
 
 将以下凭证文件放到项目根目录：
@@ -91,15 +95,16 @@ python3 main.py --sync-creators
 ## 运行
 
 ```bash
-# 手动触发（测试用）
+# 手动触发
 python3 main.py --feishu          # 立即推送飞书日报
 python3 main.py --sync-creators   # 立即同步博主到 Google Sheet（含实时触达校验）
 
-# 发送合作邀请邮件
-python3 main.py --send-emails --min-followers 5000 --max-followers 200000 --min-avg-plays 1000 --dry-run  # 预览
-python3 main.py --send-emails --min-followers 5000 --max-followers 200000 --min-avg-plays 1000            # 正式发送
+# 发送合作邀请邮件（手动触发，发前先预览确认）
+python3 main.py --send-emails --min-followers 5000 --max-followers 200000 --min-avg-plays 1000 --dry-run  # 预览名单和邮件内容
+python3 main.py --send-emails --min-followers 5000 --max-followers 200000 --min-avg-plays 1000            # 确认后正式发送
+python3 main.py --test-email 你的邮箱                                                                      # 发一封测试邮件给自己
 
-# 启动定时任务（长期运行）
+# 启动定时任务（长期运行，不含发邮件）
 python3 main.py
 ```
 
@@ -139,6 +144,7 @@ python3 main.py
 ├── feishu_sender.py     # 飞书消息推送
 ├── gmail_checker.py     # Gmail 已发送邮件查询
 ├── email_sender.py      # 博主合作邀请邮件发送
+├── email_template.txt   # 邮件模板（直接编辑修改内容，支持 {{name}} 等变量）
 ├── .env.example         # 环境变量模板
 └── requirements.txt     # Python 依赖
 ```
