@@ -130,6 +130,45 @@ def build_email(creator: dict) -> tuple[str, str]:
     return subject, body
 
 
+def send_test_email(to: str):
+    """发送测试邮件到指定地址"""
+    if not SMTP_ACCOUNTS:
+        print("[邮件] 未配置 SMTP_USER 或 SMTP_PASSWORD，跳过")
+        return
+
+    test_creator = {
+        "username": "@test_creator",
+        "nickname": "Test Creator",
+        "followers": "1.0万",
+        "avg_plays": "5000",
+        "style_en": "unboxing and review",
+        "email": to,
+    }
+    subject, body = build_email(test_creator)
+    smtp_user, smtp_password = SMTP_ACCOUNTS[0]
+
+    try:
+        if SMTP_PORT == 465:
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
+        else:
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+            server.starttls()
+        server.login(smtp_user, smtp_password)
+
+        msg = MIMEMultipart()
+        msg["From"] = f"{SENDER_NAME} <{smtp_user}>"
+        msg["To"] = to
+        msg["Subject"] = f"[测试] {subject}"
+        msg.attach(MIMEText(body, "plain"))
+        server.sendmail(smtp_user, to, msg.as_string())
+        server.quit()
+        print(f"[邮件] 测试邮件已发送至 {to}")
+    except smtplib.SMTPAuthenticationError:
+        print("[邮件] SMTP 认证失败，请检查账号和密码")
+    except Exception as e:
+        print(f"[邮件] 发送失败: {e}")
+
+
 def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_plays=0, dry_run=False):
     from creator_tracker import get_sheet
 

@@ -53,6 +53,13 @@ if __name__ == "__main__":
             min_avg_plays=_arg("--min-avg-plays", 0),
             dry_run="--dry-run" in sys.argv,
         )
+    elif "--test-email" in sys.argv:
+        from email_sender import send_test_email
+        try:
+            to = sys.argv[sys.argv.index("--test-email") + 1]
+            send_test_email(to)
+        except IndexError:
+            print("用法：python3 main.py --test-email 收件人邮箱")
     else:
         # 定时模式：飞书日报 09:00 / 博主同步每 4 小时
         schedule.every().day.at("09:00").do(job_feishu)
