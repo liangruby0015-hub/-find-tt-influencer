@@ -1,0 +1,11 @@
+# 凭证文件（不能提交到代码库）
+.env
+google_credentials.json
+gmail_credentials.json
+gmail_token.json
+
+# 运行时生成
+sent_log.json
+__pycache__/
+*.pyc
+.DS_Store
