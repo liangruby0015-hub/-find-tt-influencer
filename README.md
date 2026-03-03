@@ -138,6 +138,54 @@ python3 main.py
 | 是否触达 | 同步时实时查 Gmail 自动填入；否 / 已发送 / 邮箱重复请核查 |
 | 备注 | 手动填写 |
 
+## 邮件模板
+
+邮件内容写在 `email_template.txt`，直接编辑即可，无需改代码。格式如下：
+
+```
+subject: 邮件主题
+
+邮件正文...
+```
+
+当前模板内容：
+
+```
+subject: 【Paid collaboration】ISLANDS Toy Marketplace!
+
+Hi {{name}},
+
+Thank you for taking the time to read our message. ❤️
+We are the ISLANDS App team — a platform dedicated to trading blind boxes and designer art toys. With a strong and rapidly growing community in China, we are now expanding to new international audiences.
+
+We've been following your content and feel that your creative style aligns perfectly with our brand. We would love to explore a potential collaboration with you.
+
+As our app has just launched internationally, we'd like to invite you to check it out and discuss the possibility of a paid video collaboration.
+
+You can download the ISLANDS App here:
+iOS: https://itunes.apple.com/app/6746654503
+Android: https://play.google.com/store/apps/details?id=tech.echoing.islands
+
+If this sounds interesting to you, please feel free to reply — we'd be happy to share more details.
+
+
+Warm regards,
+ISLANDS Team
+```
+
+支持以下变量，发送时自动替换：
+
+| 变量 | 说明 |
+|------|------|
+| `{{name}}` | 博主昵称 |
+| `{{username}}` | TikTok 账号（如 @xxx） |
+| `{{style}}` | 视频风格（英文，如 unboxing and review） |
+| `{{followers}}` | 粉丝数 |
+| `{{avg_plays}}` | 近月均播 |
+| `{{brand}}` | 品牌名称（来自 `.env` BRAND_NAME） |
+| `{{reply_email}}` | 回复邮箱（来自 `.env` REPLY_EMAIL） |
+| `{{sender_name}}` | 发件人名称（来自 `.env` SENDER_NAME） |
+
 ## 文件说明
 
 ```
