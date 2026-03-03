@@ -1,16 +1,25 @@
 import os
-import base64
+import time
+import random
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
 load_dotenv()
 
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USER = os.getenv("GMAIL_SMTP_USER", "")
+SMTP_APP_PASSWORD = os.getenv("GMAIL_SMTP_APP_PASSWORD", "")
 SENDER_NAME = os.getenv("SENDER_NAME", "Brand Partnerships")
 BRAND_NAME = os.getenv("BRAND_NAME", "Our Brand")
 REPLY_EMAIL = os.getenv("REPLY_EMAIL", "")
 
-# 视频风格中文 → 英文描述
+DAILY_SEND_LIMIT = 500   # Gmail SMTP 每日上限
+DELAY_MIN = 2             # 每封最小间隔（秒）
+DELAY_MAX = 5             # 每封最大间隔（秒）
+
 STYLE_MAP = {
     "开箱测评": "unboxing and review",
     "收藏展示": "collection showcase",
@@ -22,7 +31,6 @@ STYLE_MAP = {
 
 
 def parse_number(s: str) -> int:
-    """将格式化数字字符串转回整数（如 '1.4万' → 14000）"""
     if not s:
         return 0
     s = str(s).strip()
@@ -37,7 +45,6 @@ def parse_number(s: str) -> int:
 
 
 def get_eligible_creators(sheet, min_followers=0, max_followers=float("inf"), min_avg_plays=0) -> list[dict]:
-    """从 Google Sheet 获取符合条件的未触达博主"""
     rows = sheet.get_all_values()
     if len(rows) <= 1:
         return []
@@ -46,7 +53,6 @@ def get_eligible_creators(sheet, min_followers=0, max_followers=float("inf"), mi
     for i, row in enumerate(rows[1:], start=2):
         if len(row) < 14:
             continue
-
         email = row[4].strip()
         contacted = row[13].strip()
         if not email or contacted != "否":
@@ -60,10 +66,9 @@ def get_eligible_creators(sheet, min_followers=0, max_followers=float("inf"), mi
         if avg_plays < min_avg_plays:
             continue
 
-        style_raw = row[12]
         style_en = " & ".join(
             STYLE_MAP.get(s.strip(), "designer toy")
-            for s in style_raw.split("/") if s.strip()
+            for s in row[12].split("/") if s.strip()
         ) or "designer toy"
 
         creators.append({
@@ -80,7 +85,6 @@ def get_eligible_creators(sheet, min_followers=0, max_followers=float("inf"), mi
 
 
 def build_email(creator: dict) -> tuple[str, str]:
-    """生成个性化邮件主题和正文"""
     nickname = creator["nickname"]
     style_en = creator["style_en"]
 
@@ -109,20 +113,16 @@ Best,
 
 
 def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_plays=0, dry_run=False):
-    """执行邮件发送任务"""
-    from gmail_checker import get_gmail_service
     from creator_tracker import get_sheet
+
+    if not SMTP_USER or not SMTP_APP_PASSWORD:
+        print("[邮件] 未配置 GMAIL_SMTP_USER 或 GMAIL_SMTP_APP_PASSWORD，跳过")
+        return
 
     try:
         sheet = get_sheet()
     except Exception as e:
         print(f"[邮件] 连接 Google Sheet 失败: {e}")
-        return
-
-    try:
-        gmail_service = get_gmail_service()
-    except Exception as e:
-        print(f"[邮件] Gmail 连接失败: {e}")
         return
 
     creators = get_eligible_creators(sheet, min_followers, max_followers, min_avg_plays)
@@ -132,8 +132,9 @@ def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_play
         print(f"       筛选条件：粉丝 {min_followers}~{int(max_followers) if max_followers != float('inf') else '不限'}，近月均播 ≥ {min_avg_plays}")
         return
 
-    print(f"\n[邮件] 符合条件的博主共 {len(creators)} 位：")
-    for c in creators:
+    send_count = min(len(creators), DAILY_SEND_LIMIT)
+    print(f"\n[邮件] 符合条件的博主共 {len(creators)} 位，本次发送 {send_count} 封：")
+    for c in creators[:send_count]:
         print(f"  {c['username']}  粉丝：{c['followers']}  均播：{c['avg_plays']}  邮箱：{c['email']}")
 
     if dry_run:
@@ -146,19 +147,38 @@ def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_play
         return
 
     sent = 0
-    for c in creators:
-        subject, body = build_email(c)
-        try:
-            message = MIMEMultipart()
-            message["to"] = c["email"]
-            message["subject"] = subject
-            message.attach(MIMEText(body, "plain"))
-            raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-            gmail_service.users().messages().send(userId="me", body={"raw": raw}).execute()
-            sheet.update_cell(c["row"], 14, "已发送")
-            sent += 1
-            print(f"[邮件] ✓ {c['username']} ({c['email']})")
-        except Exception as e:
-            print(f"[邮件] ✗ {c['username']} 发送失败: {e}")
+    try:
+        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USER, SMTP_APP_PASSWORD)
+
+        for c in creators[:send_count]:
+            subject, body = build_email(c)
+            msg = MIMEMultipart()
+            msg["From"] = f"{SENDER_NAME} <{SMTP_USER}>"
+            msg["To"] = c["email"]
+            msg["Subject"] = subject
+            msg.attach(MIMEText(body, "plain"))
+
+            try:
+                server.sendmail(SMTP_USER, c["email"], msg.as_string())
+                sheet.update_cell(c["row"], 14, "已发送")
+                sent += 1
+                print(f"[邮件] ✓ {c['username']} ({c['email']})")
+            except Exception as e:
+                print(f"[邮件] ✗ {c['username']} 发送失败: {e}")
+
+            # 随机间隔，避免触发垃圾邮件检测
+            if sent < send_count:
+                delay = random.uniform(DELAY_MIN, DELAY_MAX)
+                time.sleep(delay)
+
+        server.quit()
+    except smtplib.SMTPAuthenticationError:
+        print("[邮件] SMTP 认证失败，请检查 GMAIL_SMTP_USER 和 GMAIL_SMTP_APP_PASSWORD")
+        return
+    except Exception as e:
+        print(f"[邮件] SMTP 连接失败: {e}")
+        return
 
     print(f"\n[邮件] 本次共发送 {sent} 封，表格触达状态已更新")

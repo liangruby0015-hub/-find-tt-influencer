@@ -35,6 +35,11 @@
 2. 创建 OAuth 客户端 ID（类型选「桌面应用」）→ 下载 JSON → 重命名为 `gmail_credentials.json`
 3. 在 OAuth 同意屏幕的「测试用户」中添加你自己的 Gmail 地址
 
+### 5. Gmail SMTP（发送邮件）
+1. 开启 Google 账号的两步验证
+2. 前往 [应用专用密码](https://myaccount.google.com/apppasswords) 生成一个 16 位密码
+3. 填入 `.env` 的 `GMAIL_SMTP_USER` 和 `GMAIL_SMTP_APP_PASSWORD`
+
 ## 安装
 
 ```bash
@@ -56,10 +61,14 @@ FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/...
 RAPIDAPI_KEY=你的RapidAPI Key
 GOOGLE_SHEET_ID=你的Google Sheet ID
 
-# 发邮件时出现在签名里
+# 邮件签名
 SENDER_NAME=你的姓名
 BRAND_NAME=你的品牌名称
 REPLY_EMAIL=你的邮箱地址
+
+# Gmail SMTP 发信（开启两步验证后生成应用专用密码）
+GMAIL_SMTP_USER=你的Gmail地址
+GMAIL_SMTP_APP_PASSWORD=16位应用专用密码
 ```
 
 将以下凭证文件放到项目根目录：

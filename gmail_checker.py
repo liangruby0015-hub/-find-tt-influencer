@@ -5,10 +5,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
-GMAIL_SCOPES = [
-    "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.send",
-]
+GMAIL_SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 CREDENTIALS_FILE = os.path.join(os.path.dirname(__file__), "gmail_credentials.json")
 TOKEN_FILE = os.path.join(os.path.dirname(__file__), "gmail_token.json")
 
