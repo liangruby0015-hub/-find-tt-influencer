@@ -8,12 +8,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 
 # 支持多账号，逗号分隔
-_smtp_users = [u.strip() for u in os.getenv("GMAIL_SMTP_USER", "").split(",") if u.strip()]
-_smtp_passwords = [p.strip() for p in os.getenv("GMAIL_SMTP_APP_PASSWORD", "").split(",") if p.strip()]
+_smtp_users = [u.strip() for u in os.getenv("SMTP_USER", "").split(",") if u.strip()]
+_smtp_passwords = [p.strip() for p in os.getenv("SMTP_PASSWORD", "").split(",") if p.strip()]
 SMTP_ACCOUNTS = list(zip(_smtp_users, _smtp_passwords))  # [(user, password), ...]
 
 SENDER_NAME = os.getenv("SENDER_NAME", "Brand Partnerships")
@@ -120,7 +120,7 @@ def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_play
     from creator_tracker import get_sheet
 
     if not SMTP_ACCOUNTS:
-        print("[邮件] 未配置 GMAIL_SMTP_USER 或 GMAIL_SMTP_APP_PASSWORD，跳过")
+        print("[邮件] 未配置 SMTP_USER 或 SMTP_PASSWORD，跳过")
         return
 
     try:
