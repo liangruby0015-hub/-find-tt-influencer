@@ -5,7 +5,7 @@
 ## 功能
 
 - **飞书日报**：每天 09:00 自动推送 TikTok 热门视频 + 热门话题到飞书群
-- **博主同步**：每 4 小时抓取 50 条美区视频，提取博主信息（粉丝数、邮箱、简介、近月均播、视频风格）写入 Google Sheet
+- **博主同步**：每 4 小时抓取 50 条美区视频，提取博主信息（粉丝数、邮箱、简介、近月均播、视频风格）写入 Google Sheet；仅收录粉丝数 > 2000 的博主
 - **触达追踪**：同步博主时实时查询 Gmail 已发送邮件，直接写入准确的触达状态
 - **发邮件（手动）**：按粉丝数范围和近月均播筛选未触达博主，预览确认后手动发送个性化品牌合作邀请邮件，自动更新触达状态
 
@@ -40,7 +40,8 @@
    - **Gmail**：开启两步验证 → 前往 [应用专用密码](https://myaccount.google.com/apppasswords) 生成 16 位密码
    - **QQ邮箱**：设置 → 账户 → 开启 SMTP → 生成授权码
    - **163邮箱**：设置 → POP3/SMTP → 开启 → 设置授权密码
-2. 填入 `.env` 的 `SMTP_USER` 和 `SMTP_PASSWORD`，端口推荐使用 `465`
+2. 支持多账号轮发：`SMTP_USER` 和 `SMTP_PASSWORD` 均用英文逗号分隔，顺序对应，每账号每日上限 500 封
+3. 填入 `.env` 的 `SMTP_USER` 和 `SMTP_PASSWORD`，端口推荐使用 `465`（SSL）
 
 ## 安装
 
@@ -68,11 +69,13 @@ SENDER_NAME=你的姓名
 BRAND_NAME=你的品牌名称
 REPLY_EMAIL=你的邮箱地址
 
-# Gmail SMTP 发信（开启两步验证后生成应用专用密码）
+# SMTP 发信（支持 Gmail / QQ / 163 / Outlook 等）
+# Gmail 用应用专用密码；QQ 邮箱用授权码
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
-SMTP_USER=你的邮箱地址
-SMTP_PASSWORD=应用专用密码
+# 支持多账号，用英文逗号分隔，密码顺序需与账号对应，每账号每日上限 500 封
+SMTP_USER=账号1@gmail.com,账号2@gmail.com
+SMTP_PASSWORD=应用专用密码1,应用专用密码2
 ```
 
 将以下凭证文件放到项目根目录：
