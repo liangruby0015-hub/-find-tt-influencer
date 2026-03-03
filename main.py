@@ -38,6 +38,21 @@ if __name__ == "__main__":
         job_feishu()
     elif "--sync-creators" in sys.argv:
         job_sync_creators()
+    elif "--send-emails" in sys.argv:
+        from email_sender import run_email_campaign
+
+        def _arg(name, default):
+            try:
+                return type(default)(sys.argv[sys.argv.index(name) + 1])
+            except (ValueError, IndexError):
+                return default
+
+        run_email_campaign(
+            min_followers=_arg("--min-followers", 0),
+            max_followers=_arg("--max-followers", float("inf")),
+            min_avg_plays=_arg("--min-avg-plays", 0),
+            dry_run="--dry-run" in sys.argv,
+        )
     else:
         # 定时模式：飞书日报 09:00 / 博主同步每 4 小时
         schedule.every().day.at("09:00").do(job_feishu)

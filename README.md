@@ -7,6 +7,7 @@
 - **飞书日报**：每天 09:00 自动推送 TikTok 热门视频 + 热门话题到飞书群
 - **博主同步**：每 4 小时抓取 50 条美区视频，提取博主信息（粉丝数、邮箱、简介、近月均播、视频风格）写入 Google Sheet
 - **触达追踪**：同步博主时实时查询 Gmail 已发送邮件，直接写入准确的触达状态
+- **自动发邮件**：按粉丝数范围和近月均播筛选未触达博主，发送个性化品牌合作邀请邮件，自动更新触达状态
 
 ## 前置准备
 
@@ -54,6 +55,11 @@ cp .env.example .env
 FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/...
 RAPIDAPI_KEY=你的RapidAPI Key
 GOOGLE_SHEET_ID=你的Google Sheet ID
+
+# 发邮件时出现在签名里
+SENDER_NAME=你的姓名
+BRAND_NAME=你的品牌名称
+REPLY_EMAIL=你的邮箱地址
 ```
 
 将以下凭证文件放到项目根目录：
@@ -79,6 +85,10 @@ python3 main.py --sync-creators
 # 手动触发（测试用）
 python3 main.py --feishu          # 立即推送飞书日报
 python3 main.py --sync-creators   # 立即同步博主到 Google Sheet（含实时触达校验）
+
+# 发送合作邀请邮件
+python3 main.py --send-emails --min-followers 5000 --max-followers 200000 --min-avg-plays 1000 --dry-run  # 预览
+python3 main.py --send-emails --min-followers 5000 --max-followers 200000 --min-avg-plays 1000            # 正式发送
 
 # 启动定时任务（长期运行）
 python3 main.py
@@ -119,6 +129,7 @@ python3 main.py
 ├── creator_tracker.py   # 博主信息同步到 Google Sheet
 ├── feishu_sender.py     # 飞书消息推送
 ├── gmail_checker.py     # Gmail 已发送邮件查询
+├── email_sender.py      # 博主合作邀请邮件发送
 ├── .env.example         # 环境变量模板
 └── requirements.txt     # Python 依赖
 ```
