@@ -221,6 +221,15 @@ def sync_creators_to_sheet(videos: list[dict]):
         print(f"[Creator] 连接 Google Sheet 失败: {e}")
         return
 
+    # 尝试初始化 Gmail 服务，用于写入时同步校验触达状态
+    gmail_service = None
+    try:
+        from gmail_checker import get_gmail_service, check_email_sent
+        gmail_service = get_gmail_service()
+        print("[Creator] Gmail 已连接，将同步校验触达状态")
+    except Exception:
+        print("[Creator] Gmail 未配置，触达状态默认填「否」")
+
     new_count = 0
     today = datetime.now().strftime("%Y-%m-%d")
 
@@ -243,9 +252,17 @@ def sync_creators_to_sheet(videos: list[dict]):
         signature = user.get("signature", "") or ""
         emails = extract_emails(signature)
 
-        already_contacted = any(e.lower() in existing_emails for e in emails)
-        if already_contacted:
-            print(f"[Creator] @{username} 邮箱已存在（可能触达过），仍写入但标记")
+        # 校验触达状态：优先查 Gmail 已发送，其次检查表格邮箱重复
+        contacted = "否"
+        if emails and gmail_service:
+            if any(check_email_sent(gmail_service, e) for e in emails):
+                contacted = "已发送"
+                print(f"[Creator] @{username} 检测到 Gmail 已发送过邮件")
+        if contacted == "否":
+            already_in_sheet = any(e.lower() in existing_emails for e in emails)
+            if already_in_sheet:
+                contacted = "邮箱重复，请核查"
+                print(f"[Creator] @{username} 邮箱已存在于表格，标记核查")
 
         # 获取近期播放和风格数据
         recent_stats = get_user_recent_stats(username)
@@ -259,7 +276,6 @@ def sync_creators_to_sheet(videos: list[dict]):
         profile_url = f"https://www.tiktok.com/@{username}"
         source = video.get("source", "")
         email_str = ", ".join(emails) if emails else ""
-        contacted = "邮箱重复，请核查" if already_contacted else "否"
 
         row = [
             f"@{username}",
