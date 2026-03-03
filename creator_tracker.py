@@ -198,6 +198,12 @@ def sync_creators_to_sheet(videos: list[dict]):
         user = info.get("user", {})
         stats = info.get("stats", {})
 
+        # 粉丝数过滤
+        raw_followers = int(stats.get("followerCount", 0))
+        if raw_followers < 2000:
+            print(f"[Creator] @{username} 粉丝数 {raw_followers} < 2000，跳过")
+            continue
+
         signature = user.get("signature", "") or ""
         emails = extract_emails(signature)
 
