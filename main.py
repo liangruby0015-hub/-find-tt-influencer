@@ -6,7 +6,7 @@ load_dotenv()
 
 from tiktok_scraper import run_tiktok_scraper
 from feishu_sender import send_feishu_report
-from creator_tracker import sync_creators_to_sheet, update_contacted_status
+from creator_tracker import sync_creators_to_sheet
 
 
 def job_feishu():
@@ -31,14 +31,6 @@ def job_sync_creators():
     print("=" * 50)
 
 
-def job_check_contacted():
-    """比对 Gmail 已发送邮件，更新博主触达状态"""
-    print("=" * 50)
-    print("[触达更新] 开始执行...")
-    update_contacted_status()
-    print("=" * 50)
-
-
 if __name__ == "__main__":
     import sys
 
@@ -46,15 +38,11 @@ if __name__ == "__main__":
         job_feishu()
     elif "--sync-creators" in sys.argv:
         job_sync_creators()
-    elif "--check-contacted" in sys.argv:
-        dry_run = "--dry-run" in sys.argv
-        update_contacted_status(dry_run=dry_run)
     else:
-        # 定时模式：飞书日报 09:00 / 博主同步每 4 小时 / 触达状态每天 20:00
+        # 定时模式：飞书日报 09:00 / 博主同步每 4 小时
         schedule.every().day.at("09:00").do(job_feishu)
         schedule.every(4).hours.do(job_sync_creators)
-        schedule.every().day.at("20:00").do(job_check_contacted)
-        print("Bot 已启动：飞书日报 09:00 / 博主同步每 4 小时 / 触达更新 20:00。按 Ctrl+C 停止。")
+        print("Bot 已启动：飞书日报 09:00 / 博主同步每 4 小时。按 Ctrl+C 停止。")
         while True:
             schedule.run_pending()
             time.sleep(60)

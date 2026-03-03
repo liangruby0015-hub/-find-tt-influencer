@@ -6,7 +6,7 @@
 
 - **飞书日报**：每天 09:00 自动推送 TikTok 热门视频 + 热门话题到飞书群
 - **博主同步**：每 4 小时抓取 50 条美区视频，提取博主信息（粉丝数、邮箱、简介、近月均播、视频风格）写入 Google Sheet
-- **触达追踪**：同步博主时实时查询 Gmail 已发送邮件，直接写入准确的触达状态；每天 20:00 再做一次全量扫描，补全当天新发送的记录
+- **触达追踪**：同步博主时实时查询 Gmail 已发送邮件，直接写入准确的触达状态
 
 ## 前置准备
 
@@ -75,9 +75,7 @@ python3 main.py --sync-creators
 ```bash
 # 手动触发（测试用）
 python3 main.py --feishu          # 立即推送飞书日报
-python3 main.py --sync-creators   # 立即同步博主到 Google Sheet
-python3 main.py --check-contacted # 立即更新触达状态
-python3 main.py --check-contacted --dry-run  # 预览模式，不写入表格
+python3 main.py --sync-creators   # 立即同步博主到 Google Sheet（含实时触达校验）
 
 # 启动定时任务（长期运行）
 python3 main.py
@@ -89,7 +87,6 @@ python3 main.py
 |------|------|
 | 飞书日报 | 每天 09:00 |
 | 博主同步 → Google Sheet | 每 4 小时 |
-| Gmail 触达状态更新 | 每天 20:00 |
 
 ## Google Sheet 字段说明
 
