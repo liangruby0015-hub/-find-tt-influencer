@@ -157,57 +157,6 @@ def fmt_number(n) -> str:
         return str(n)
 
 
-def update_contacted_status(dry_run: bool = False):
-    """扫描 Google Sheet，比对 Gmail 已发送邮件，自动更新「是否触达」列"""
-    from gmail_checker import get_gmail_service, check_email_sent
-
-    if not SHEET_ID:
-        print("[触达更新] 未配置 GOOGLE_SHEET_ID，跳过")
-        return
-
-    try:
-        sheet = get_sheet()
-    except Exception as e:
-        print(f"[触达更新] 连接 Google Sheet 失败: {e}")
-        return
-
-    try:
-        service = get_gmail_service()
-    except FileNotFoundError as e:
-        print(f"[触达更新] {e}")
-        return
-
-    rows = sheet.get_all_values()
-    if len(rows) <= 1:
-        print("[触达更新] 表格无数据")
-        return
-
-    # 列索引（1-based）：邮箱=5，是否触达=14
-    EMAIL_COL = 5
-    CONTACTED_COL = 14
-
-    updated = 0
-    for i, row in enumerate(rows[1:], start=2):  # start=2 跳过表头
-        if len(row) < EMAIL_COL or not row[EMAIL_COL - 1]:
-            continue
-        current_status = row[CONTACTED_COL - 1] if len(row) >= CONTACTED_COL else "否"
-        # 只处理状态为"否"或"邮箱重复，请核查"的行，不覆盖手动标记
-        if current_status not in ("否", "邮箱重复，请核查"):
-            continue
-
-        emails = [e.strip() for e in row[EMAIL_COL - 1].split(",") if e.strip()]
-        sent = any(check_email_sent(service, e) for e in emails)
-
-        if sent:
-            username = row[0] if row else f"第{i}行"
-            print(f"[触达更新] {username} → 检测到已发送，{'（dry-run 未写入）' if dry_run else '更新为「已发送」'}")
-            if not dry_run:
-                sheet.update_cell(i, CONTACTED_COL, "已发送")
-            updated += 1
-
-    print(f"[触达更新] 扫描完成，{'发现' if dry_run else '更新了'} {updated} 条记录")
-
-
 def sync_creators_to_sheet(videos: list[dict]):
     """将抓取到的博主信息同步到 Google Sheet"""
     if not SHEET_ID:
