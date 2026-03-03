@@ -76,11 +76,11 @@ SMTP_PASSWORD=应用专用密码
 ```
 
 将以下凭证文件放到项目根目录：
-- `google_credentials.json`（服务账号密钥）
-- `gmail_credentials.json`（Gmail OAuth 凭证）
-- `gmail_token.json`（Gmail 授权 token）
+- `google_credentials.json`（服务账号密钥，联系项目负责人获取）
+- `gmail_credentials.json`（Gmail OAuth 凭证，联系项目负责人获取）
+- `gmail_token.json`（首次运行 `python3 main.py --sync-creators` 后自动生成，无需提供）
 
-> 以上文件及 `.env` 均不含在代码仓库中，请联系项目负责人私下获取。
+> `.env` 及以上凭证文件均不含在代码仓库中，请联系项目负责人私下获取。
 
 ## 首次运行
 
