@@ -1,0 +1,20 @@
+subject: Collaboration Opportunity — {{brand}} x {{name}}
+
+Hi {{name}},
+
+I came across your TikTok and love your {{style}} content — it's exactly the kind of authentic, creative work we've been looking for!
+
+I'm reaching out on behalf of {{brand}}, a brand specializing in designer toys and blind box collectibles. We'd love to explore a collaboration with you.
+
+Here's what we have in mind:
+- Send you some of our latest products to feature in your content
+- Paid partnership opportunities for dedicated posts
+- Long-term ambassador program (if it's a great fit!)
+
+Would you be open to a quick chat? Feel free to reply to this email or reach out at {{reply_email}}.
+
+Looking forward to connecting!
+
+Best,
+{{sender_name}}
+{{brand}} | Creator Partnerships

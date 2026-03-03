@@ -88,31 +88,45 @@ def get_eligible_creators(sheet, min_followers=0, max_followers=float("inf"), mi
     return creators
 
 
+TEMPLATE_FILE = os.path.join(os.path.dirname(__file__), "email_template.txt")
+
+
+def load_template() -> tuple[str, str]:
+    """加载邮件模板，返回 (subject, body)"""
+    if not os.path.exists(TEMPLATE_FILE):
+        raise FileNotFoundError(f"未找到邮件模板文件：{TEMPLATE_FILE}")
+    with open(TEMPLATE_FILE, "r", encoding="utf-8") as f:
+        content = f.read().strip()
+    lines = content.splitlines()
+    subject = ""
+    body_lines = []
+    for i, line in enumerate(lines):
+        if line.startswith("subject:"):
+            subject = line[len("subject:"):].strip()
+        elif i > 0:
+            body_lines.append(line)
+    body = "\n".join(body_lines).strip()
+    return subject, body
+
+
 def build_email(creator: dict) -> tuple[str, str]:
-    nickname = creator["nickname"]
-    style_en = creator["style_en"]
-
-    subject = f"Collaboration Opportunity — {BRAND_NAME} x {nickname}"
-
-    body = f"""Hi {nickname},
-
-I came across your TikTok and love your {style_en} content — it's exactly the kind of authentic, creative work we've been looking for!
-
-I'm reaching out on behalf of {BRAND_NAME}, a brand specializing in designer toys and blind box collectibles. We'd love to explore a collaboration with you.
-
-Here's what we have in mind:
-- Send you some of our latest products to feature in your content
-- Paid partnership opportunities for dedicated posts
-- Long-term ambassador program (if it's a great fit!)
-
-Would you be open to a quick chat? Feel free to reply to this email or reach out at {REPLY_EMAIL}.
-
-Looking forward to connecting!
-
-Best,
-{SENDER_NAME}
-{BRAND_NAME} | Creator Partnerships"""
-
+    """将模板变量替换为博主实际信息"""
+    subject_tpl, body_tpl = load_template()
+    variables = {
+        "{{name}}": creator["nickname"],
+        "{{style}}": creator["style_en"],
+        "{{brand}}": BRAND_NAME,
+        "{{reply_email}}": REPLY_EMAIL,
+        "{{sender_name}}": SENDER_NAME,
+        "{{followers}}": creator["followers"],
+        "{{avg_plays}}": creator["avg_plays"],
+        "{{username}}": creator["username"],
+    }
+    subject = subject_tpl
+    body = body_tpl
+    for key, val in variables.items():
+        subject = subject.replace(key, str(val))
+        body = body.replace(key, str(val))
     return subject, body
 
 
