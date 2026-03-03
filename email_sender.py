@@ -10,13 +10,17 @@ load_dotenv()
 
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
-SMTP_USER = os.getenv("GMAIL_SMTP_USER", "")
-SMTP_APP_PASSWORD = os.getenv("GMAIL_SMTP_APP_PASSWORD", "")
+
+# 支持多账号，逗号分隔
+_smtp_users = [u.strip() for u in os.getenv("GMAIL_SMTP_USER", "").split(",") if u.strip()]
+_smtp_passwords = [p.strip() for p in os.getenv("GMAIL_SMTP_APP_PASSWORD", "").split(",") if p.strip()]
+SMTP_ACCOUNTS = list(zip(_smtp_users, _smtp_passwords))  # [(user, password), ...]
+
 SENDER_NAME = os.getenv("SENDER_NAME", "Brand Partnerships")
 BRAND_NAME = os.getenv("BRAND_NAME", "Our Brand")
 REPLY_EMAIL = os.getenv("REPLY_EMAIL", "")
 
-DAILY_SEND_LIMIT = 500   # Gmail SMTP 每日上限
+DAILY_SEND_LIMIT = 500   # 每个账号每日上限
 DELAY_MIN = 2             # 每封最小间隔（秒）
 DELAY_MAX = 5             # 每封最大间隔（秒）
 
@@ -115,7 +119,7 @@ Best,
 def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_plays=0, dry_run=False):
     from creator_tracker import get_sheet
 
-    if not SMTP_USER or not SMTP_APP_PASSWORD:
+    if not SMTP_ACCOUNTS:
         print("[邮件] 未配置 GMAIL_SMTP_USER 或 GMAIL_SMTP_APP_PASSWORD，跳过")
         return
 
@@ -132,8 +136,11 @@ def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_play
         print(f"       筛选条件：粉丝 {min_followers}~{int(max_followers) if max_followers != float('inf') else '不限'}，近月均播 ≥ {min_avg_plays}")
         return
 
-    send_count = min(len(creators), DAILY_SEND_LIMIT)
-    print(f"\n[邮件] 符合条件的博主共 {len(creators)} 位，本次发送 {send_count} 封：")
+    # 多账号总容量
+    total_capacity = DAILY_SEND_LIMIT * len(SMTP_ACCOUNTS)
+    send_count = min(len(creators), total_capacity)
+    print(f"\n[邮件] 符合条件的博主共 {len(creators)} 位，本次发送 {send_count} 封")
+    print(f"       可用账号 {len(SMTP_ACCOUNTS)} 个，总容量 {total_capacity} 封/天")
     for c in creators[:send_count]:
         print(f"  {c['username']}  粉丝：{c['followers']}  均播：{c['avg_plays']}  邮箱：{c['email']}")
 
@@ -147,35 +154,53 @@ def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_play
         return
 
     sent = 0
+    account_idx = 0
+    account_sent = 0  # 当前账号已发送数
+
     try:
+        smtp_user, smtp_password = SMTP_ACCOUNTS[account_idx]
         server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
         server.starttls()
-        server.login(SMTP_USER, SMTP_APP_PASSWORD)
+        server.login(smtp_user, smtp_password)
+        print(f"[邮件] 使用账号：{smtp_user}")
 
         for c in creators[:send_count]:
+            # 当前账号达到上限，切换下一个
+            if account_sent >= DAILY_SEND_LIMIT:
+                account_idx += 1
+                if account_idx >= len(SMTP_ACCOUNTS):
+                    print("[邮件] 所有账号已达今日上限，停止发送")
+                    break
+                server.quit()
+                smtp_user, smtp_password = SMTP_ACCOUNTS[account_idx]
+                server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+                server.starttls()
+                server.login(smtp_user, smtp_password)
+                account_sent = 0
+                print(f"[邮件] 切换账号：{smtp_user}")
+
             subject, body = build_email(c)
             msg = MIMEMultipart()
-            msg["From"] = f"{SENDER_NAME} <{SMTP_USER}>"
+            msg["From"] = f"{SENDER_NAME} <{smtp_user}>"
             msg["To"] = c["email"]
             msg["Subject"] = subject
             msg.attach(MIMEText(body, "plain"))
 
             try:
-                server.sendmail(SMTP_USER, c["email"], msg.as_string())
+                server.sendmail(smtp_user, c["email"], msg.as_string())
                 sheet.update_cell(c["row"], 14, "已发送")
                 sent += 1
-                print(f"[邮件] ✓ {c['username']} ({c['email']})")
+                account_sent += 1
+                print(f"[邮件] ✓ {c['username']} ({c['email']})  [{smtp_user}]")
             except Exception as e:
                 print(f"[邮件] ✗ {c['username']} 发送失败: {e}")
 
-            # 随机间隔，避免触发垃圾邮件检测
             if sent < send_count:
-                delay = random.uniform(DELAY_MIN, DELAY_MAX)
-                time.sleep(delay)
+                time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
 
         server.quit()
     except smtplib.SMTPAuthenticationError:
-        print("[邮件] SMTP 认证失败，请检查 GMAIL_SMTP_USER 和 GMAIL_SMTP_APP_PASSWORD")
+        print(f"[邮件] SMTP 认证失败，请检查账号和应用专用密码")
         return
     except Exception as e:
         print(f"[邮件] SMTP 连接失败: {e}")
