@@ -59,6 +59,9 @@ GOOGLE_SHEET_ID=你的Google Sheet ID
 将以下凭证文件放到项目根目录：
 - `google_credentials.json`（服务账号密钥）
 - `gmail_credentials.json`（Gmail OAuth 凭证）
+- `gmail_token.json`（Gmail 授权 token）
+
+> 以上文件及 `.env` 均不含在代码仓库中，请联系项目负责人私下获取。
 
 ## 首次运行
 
