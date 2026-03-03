@@ -6,7 +6,7 @@
 
 - **飞书日报**：每天 09:00 自动推送 TikTok 热门视频 + 热门话题到飞书群
 - **博主同步**：每 4 小时抓取 50 条美区视频，提取博主信息（粉丝数、邮箱、简介、近月均播、视频风格）写入 Google Sheet
-- **触达追踪**：每天 20:00 扫描 Gmail 已发送邮件，自动更新博主的「是否触达」状态
+- **触达追踪**：同步博主时实时查询 Gmail 已发送邮件，直接写入准确的触达状态；每天 20:00 再做一次全量扫描，补全当天新发送的记录
 
 ## 前置准备
 
@@ -37,8 +37,8 @@
 ## 安装
 
 ```bash
-git clone https://github.com/你的用户名/trendy-toy-bot.git
-cd trendy-toy-bot
+git clone https://github.com/liangruby0015-hub/-find-tt-influencer.git
+cd -find-tt-influencer
 pip3 install -r requirements.txt
 ```
 
@@ -108,7 +108,7 @@ python3 main.py
 | 发现时间 | 写入日期 |
 | 近月均播 | 最近 30 天视频平均播放量 |
 | 视频风格 | 内容风格分析（开箱测评 / 收藏展示 等） |
-| 是否触达 | 否 / 已发送（自动比对 Gmail 更新） |
+| 是否触达 | 同步时实时查 Gmail 自动填入；否 / 已发送 / 邮箱重复请核查 |
 | 备注 | 手动填写 |
 
 ## 文件说明
