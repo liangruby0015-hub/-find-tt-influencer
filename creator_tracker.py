@@ -114,7 +114,7 @@ async def _get_user_recent_stats_async(api, username: str, days: int = 30) -> di
         async for video in api.user(username=username).videos(count=30):
             raw = video.as_dict or {}
             create_time = raw.get("createTime", 0)
-            play_count = (video.stats or {}).get("playCount", 0)
+            play_count = int((video.stats or {}).get("playCount", 0) or 0)
             title = raw.get("desc", "")
             videos.append({
                 "create_time": create_time,
@@ -164,6 +164,7 @@ async def _process_creators_async(videos, existing_usernames, existing_emails, g
             info = await _get_user_info_async(api, username)
             if not info:
                 continue
+            await asyncio.sleep(1)
 
             user = info.get("user", {})
             stats = info.get("stats", {})
