@@ -1,20 +1,20 @@
-subject: Collaboration Opportunity — {{brand}} x {{name}}
+subject: 【Paid collaboration】ISLANDS Toy Marketplace! 
 
 Hi {{name}},
 
-I came across your TikTok and love your {{style}} content — it's exactly the kind of authentic, creative work we've been looking for!
+Thank you for taking the time to read our message. ❤️
+We are the ISLANDS App team — a platform dedicated to trading blind boxes and designer art toys. With a strong and rapidly growing community in China, we are now expanding to new international audiences.
 
-I'm reaching out on behalf of {{brand}}, a brand specializing in designer toys and blind box collectibles. We'd love to explore a collaboration with you.
+We’ve been following your content and feel that your creative style aligns perfectly with our brand. We would love to explore a potential collaboration with you.
 
-Here's what we have in mind:
-- Send you some of our latest products to feature in your content
-- Paid partnership opportunities for dedicated posts
-- Long-term ambassador program (if it's a great fit!)
+As our app has just launched internationally, we’d like to invite you to check it out and discuss the possibility of a paid video collaboration.
 
-Would you be open to a quick chat? Feel free to reply to this email or reach out at {{reply_email}}.
+You can download the ISLANDS App here:
+iOS: https://itunes.apple.com/app/6746654503
+Android: https://play.google.com/store/apps/details?id=tech.echoing.islands
 
-Looking forward to connecting!
+If this sounds interesting to you, please feel free to reply — we’d be happy to share more details.
 
-Best,
-{{sender_name}}
-{{brand}} | Creator Partnerships
+
+Warm regards,
+ISLANDS Team
