@@ -224,6 +224,35 @@ async def _process_creators_async(videos, existing_usernames, existing_emails, g
     return new_rows
 
 
+def _update_existing_contacted(sheet, gmail_service):
+    """扫描表格中状态为「否」且有邮箱的行，重新查 Gmail 更新触达状态"""
+    from gmail_checker import check_email_sent
+    try:
+        rows = sheet.get_all_values()
+    except Exception as e:
+        print(f"[Creator] 读取表格失败: {e}")
+        return
+
+    updated = 0
+    for i, row in enumerate(rows[1:], start=2):
+        if len(row) < 14:
+            continue
+        email_str = row[4].strip()
+        contacted = row[13].strip()
+        if not email_str or contacted != "否":
+            continue
+        emails = [e.strip() for e in email_str.split(",") if e.strip()]
+        if any(check_email_sent(gmail_service, e) for e in emails):
+            try:
+                sheet.update_cell(i, 14, "已发送")
+                updated += 1
+                print(f"[Creator] 更新 {row[0]} 触达状态 → 已发送")
+            except Exception as e:
+                print(f"[Creator] 更新 {row[0]} 失败: {e}")
+
+    print(f"[Creator] 历史触达状态更新完成，共更新 {updated} 条")
+
+
 def sync_creators_to_sheet(videos: list[dict]):
     if not SHEET_ID:
         print("[Creator] 未配置 GOOGLE_SHEET_ID，跳过")
@@ -245,6 +274,7 @@ def sync_creators_to_sheet(videos: list[dict]):
         from gmail_checker import get_gmail_service
         gmail_service = get_gmail_service()
         print("[Creator] Gmail 已连接，将同步校验触达状态")
+        _update_existing_contacted(sheet, gmail_service)
     except Exception:
         print("[Creator] Gmail 未配置，触达状态默认填「否」")
 
