@@ -1,7 +1,8 @@
-httpx==0.27.0
 schedule==1.2.1
 python-dotenv==1.0.1
 gspread==6.1.2
 google-auth==2.29.0
 google-api-python-client==2.191.0
 google-auth-oauthlib==1.2.0
+TikTokApi>=6.5.0
+playwright>=1.40.0
