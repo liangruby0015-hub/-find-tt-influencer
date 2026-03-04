@@ -53,6 +53,18 @@ if __name__ == "__main__":
             min_avg_plays=_arg("--min-avg-plays", 0),
             dry_run="--dry-run" in sys.argv,
         )
+    elif "--check-contacted" in sys.argv:
+        from creator_tracker import get_sheet, _update_existing_contacted
+        from gmail_checker import get_gmail_service
+        print("=" * 50)
+        print("[触达校验] 开始扫描历史博主...")
+        try:
+            sheet = get_sheet()
+            gmail_service = get_gmail_service()
+            _update_existing_contacted(sheet, gmail_service)
+        except Exception as e:
+            print(f"[触达校验] 失败: {e}")
+        print("=" * 50)
     elif "--test-email" in sys.argv:
         from email_sender import send_test_email
         try:
