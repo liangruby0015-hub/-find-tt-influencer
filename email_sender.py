@@ -62,8 +62,12 @@ def get_eligible_creators(sheet, min_followers=0, max_followers=float("inf"), mi
         if not email or contacted != "否":
             continue
 
+        avg_plays_raw = row[11].strip()
+        if not avg_plays_raw:
+            continue  # 跳过近月均播为空的博主（近期活跃度未知）
+
         followers = parse_number(row[2])
-        avg_plays = parse_number(row[11])
+        avg_plays = parse_number(avg_plays_raw)
 
         if not (min_followers <= followers <= max_followers):
             continue

@@ -253,6 +253,25 @@ def _update_existing_contacted(sheet, gmail_service):
     print(f"[Creator] 历史触达状态更新完成，共更新 {updated} 条")
 
 
+def _dedup_sheet(sheet):
+    """删除表格中重复的博主行（保留第一次出现的）"""
+    rows = sheet.get_all_values()
+    seen = {}
+    to_delete = []
+    for i, row in enumerate(rows[1:], start=2):
+        username = row[0].strip().lower() if row else ""
+        if not username:
+            continue
+        if username in seen:
+            to_delete.append(i)
+        else:
+            seen[username] = i
+    for row_idx in sorted(to_delete, reverse=True):
+        sheet.delete_rows(row_idx)
+    if to_delete:
+        print(f"[Creator] 去重完成，删除 {len(to_delete)} 个重复行")
+
+
 def sync_creators_to_sheet(videos: list[dict]):
     if not SHEET_ID:
         print("[Creator] 未配置 GOOGLE_SHEET_ID，跳过")
@@ -265,6 +284,7 @@ def sync_creators_to_sheet(videos: list[dict]):
     try:
         sheet = get_sheet()
         existing_usernames, existing_emails = get_existing_records(sheet)
+        _dedup_sheet(sheet)
     except Exception as e:
         print(f"[Creator] 连接 Google Sheet 失败: {e}")
         return
