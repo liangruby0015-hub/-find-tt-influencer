@@ -71,6 +71,7 @@ async def _run_scraper_async(max_videos: int) -> dict:
             num_sessions=1,
             sleep_after=3,
             headless=False,
+            browser="webkit",
         )
 
         for tag in HASHTAGS:

@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import random
 import asyncio
 import gspread
 from datetime import datetime
@@ -150,6 +151,7 @@ async def _process_creators_async(videos, existing_usernames, existing_emails, g
             num_sessions=1,
             sleep_after=3,
             headless=False,
+            browser="webkit",
         )
 
         for video in videos:
@@ -164,7 +166,7 @@ async def _process_creators_async(videos, existing_usernames, existing_emails, g
             info = await _get_user_info_async(api, username)
             if not info:
                 continue
-            await asyncio.sleep(1)
+            await asyncio.sleep(random.uniform(2, 4))
 
             user = info.get("user", {})
             stats = info.get("stats", {})

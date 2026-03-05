@@ -1,26 +1,17 @@
 import os
 import time
 import random
-import smtplib
+import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-
-# 支持多账号，逗号分隔
-_smtp_users = [u.strip() for u in os.getenv("SMTP_USER", "").split(",") if u.strip()]
-_smtp_passwords = [p.strip() for p in os.getenv("SMTP_PASSWORD", "").split(",") if p.strip()]
-SMTP_ACCOUNTS = list(zip(_smtp_users, _smtp_passwords))  # [(user, password), ...]
-
 SENDER_NAME = os.getenv("SENDER_NAME", "Brand Partnerships")
 BRAND_NAME = os.getenv("BRAND_NAME", "Our Brand")
 REPLY_EMAIL = os.getenv("REPLY_EMAIL", "")
 
-DAILY_SEND_LIMIT = 500   # 每个账号每日上限
 DELAY_MIN = 2             # 每封最小间隔（秒）
 DELAY_MAX = 5             # 每封最大间隔（秒）
 
@@ -134,11 +125,17 @@ def build_email(creator: dict) -> tuple[str, str]:
     return subject, body
 
 
+def _build_raw_message(to: str, subject: str, body: str) -> str:
+    msg = MIMEMultipart()
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+    return base64.urlsafe_b64encode(msg.as_bytes()).decode()
+
+
 def send_test_email(to: str):
     """发送测试邮件到指定地址"""
-    if not SMTP_ACCOUNTS:
-        print("[邮件] 未配置 SMTP_USER 或 SMTP_PASSWORD，跳过")
-        return
+    from gmail_checker import get_gmail_service
 
     test_creator = {
         "username": "@test_creator",
@@ -149,36 +146,19 @@ def send_test_email(to: str):
         "email": to,
     }
     subject, body = build_email(test_creator)
-    smtp_user, smtp_password = SMTP_ACCOUNTS[0]
 
     try:
-        if SMTP_PORT == 465:
-            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
-        else:
-            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-            server.starttls()
-        server.login(smtp_user, smtp_password)
-
-        msg = MIMEMultipart()
-        msg["From"] = f"{SENDER_NAME} <{smtp_user}>"
-        msg["To"] = to
-        msg["Subject"] = f"[测试] {subject}"
-        msg.attach(MIMEText(body, "plain"))
-        server.sendmail(smtp_user, to, msg.as_string())
-        server.quit()
+        service = get_gmail_service()
+        raw = _build_raw_message(to, f"[测试] {subject}", body)
+        service.users().messages().send(userId="me", body={"raw": raw}).execute()
         print(f"[邮件] 测试邮件已发送至 {to}")
-    except smtplib.SMTPAuthenticationError:
-        print("[邮件] SMTP 认证失败，请检查账号和密码")
     except Exception as e:
         print(f"[邮件] 发送失败: {e}")
 
 
 def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_plays=0, dry_run=False):
     from creator_tracker import get_sheet
-
-    if not SMTP_ACCOUNTS:
-        print("[邮件] 未配置 SMTP_USER 或 SMTP_PASSWORD，跳过")
-        return
+    from gmail_checker import get_gmail_service
 
     try:
         sheet = get_sheet()
@@ -193,12 +173,8 @@ def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_play
         print(f"       筛选条件：粉丝 {min_followers}~{int(max_followers) if max_followers != float('inf') else '不限'}，近月均播 ≥ {min_avg_plays}")
         return
 
-    # 多账号总容量
-    total_capacity = DAILY_SEND_LIMIT * len(SMTP_ACCOUNTS)
-    send_count = min(len(creators), total_capacity)
-    print(f"\n[邮件] 符合条件的博主共 {len(creators)} 位，本次发送 {send_count} 封")
-    print(f"       可用账号 {len(SMTP_ACCOUNTS)} 个，总容量 {total_capacity} 封/天")
-    for c in creators[:send_count]:
+    print(f"\n[邮件] 符合条件的博主共 {len(creators)} 位，本次发送 {len(creators)} 封")
+    for c in creators:
         print(f"  {c['username']}  粉丝：{c['followers']}  均播：{c['avg_plays']}  邮箱：{c['email']}")
 
     if dry_run:
@@ -210,57 +186,25 @@ def run_email_campaign(min_followers=0, max_followers=float("inf"), min_avg_play
         print(body)
         return
 
-    sent = 0
-    account_idx = 0
-    account_sent = 0  # 当前账号已发送数
-
     try:
-        smtp_user, smtp_password = SMTP_ACCOUNTS[account_idx]
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        print(f"[邮件] 使用账号：{smtp_user}")
-
-        for c in creators[:send_count]:
-            # 当前账号达到上限，切换下一个
-            if account_sent >= DAILY_SEND_LIMIT:
-                account_idx += 1
-                if account_idx >= len(SMTP_ACCOUNTS):
-                    print("[邮件] 所有账号已达今日上限，停止发送")
-                    break
-                server.quit()
-                smtp_user, smtp_password = SMTP_ACCOUNTS[account_idx]
-                server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-                server.starttls()
-                server.login(smtp_user, smtp_password)
-                account_sent = 0
-                print(f"[邮件] 切换账号：{smtp_user}")
-
-            subject, body = build_email(c)
-            msg = MIMEMultipart()
-            msg["From"] = f"{SENDER_NAME} <{smtp_user}>"
-            msg["To"] = c["email"]
-            msg["Subject"] = subject
-            msg.attach(MIMEText(body, "plain"))
-
-            try:
-                server.sendmail(smtp_user, c["email"], msg.as_string())
-                sheet.update_cell(c["row"], 14, "已发送")
-                sent += 1
-                account_sent += 1
-                print(f"[邮件] ✓ {c['username']} ({c['email']})  [{smtp_user}]")
-            except Exception as e:
-                print(f"[邮件] ✗ {c['username']} 发送失败: {e}")
-
-            if sent < send_count:
-                time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
-
-        server.quit()
-    except smtplib.SMTPAuthenticationError:
-        print(f"[邮件] SMTP 认证失败，请检查账号和应用专用密码")
-        return
+        service = get_gmail_service()
     except Exception as e:
-        print(f"[邮件] SMTP 连接失败: {e}")
+        print(f"[邮件] Gmail API 连接失败: {e}")
         return
+
+    sent = 0
+    for c in creators:
+        subject, body = build_email(c)
+        raw = _build_raw_message(c["email"], subject, body)
+        try:
+            service.users().messages().send(userId="me", body={"raw": raw}).execute()
+            sheet.update_cell(c["row"], 14, "已发送")
+            sent += 1
+            print(f"[邮件] ✓ {c['username']} ({c['email']})")
+        except Exception as e:
+            print(f"[邮件] ✗ {c['username']} 发送失败: {e}")
+
+        if sent < len(creators):
+            time.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
 
     print(f"\n[邮件] 本次共发送 {sent} 封，表格触达状态已更新")
